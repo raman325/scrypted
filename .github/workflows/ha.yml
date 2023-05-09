@@ -3,8 +3,8 @@ name: Publish Scrypted Home Assistant Image
 on:
   workflow_dispatch:
     inputs:
-      docker_tag:
-        description: "Docker Tag"
+      tag:
+        description: "The tag used to build home assistant image. The tag will be resolved as a specific version on npm, and that version will be the docker base image."
         required: true
   workflow_run:
     workflows: ["Publish Scrypted Docker Image"]
@@ -29,7 +29,7 @@ jobs:
 
       - name: Set NPM Version
         id: package-version
-        run: echo "NPM_VERSION=${{ fromJson(steps.npm-request.outputs.response)['dist-tags'][ github.event.inputs.docker_tag] }}" >> "$GITHUB_OUTPUT"
+        run: echo "NPM_VERSION=${{ fromJson(steps.npm-request.outputs.response)['dist-tags'][ github.event.inputs.tag] }}" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -53,15 +53,17 @@ jobs:
       - name: Build and push Home Assistant image
         uses: docker/build-push-action@v3
         with:
+          build-args: |
+            SCRYPTED_BASE_IMAGE_TAG=18-bullseye-full.s6-v${{ steps.package-version.outputs.NPM_VERSION }}
           context: ha_addon/
           file: ha_addon/Dockerfile
           platforms: linux/amd64,linux/arm64,linux/armhf
           push: true
           tags: |
             ${{ format('koush/scrypted:homeassistant-v{0}', steps.package-version.outputs.NPM_VERSION) }}
-            ${{ github.event.inputs.docker_tag == 'latest' && 'koush/scrypted:homeassistant' || '' }}
+            ${{ github.event.inputs.tag == 'latest' && 'koush/scrypted:homeassistant' || '' }}
 
             ${{ format('ghcr.io/koush/scrypted:homeassistant-v{0}', steps.package-version.outputs.NPM_VERSION) }}
-            ${{ github.event.inputs.docker_tag == 'latest' && 'ghcr.io/koush/scrypted:homeassistant' || '' }}
+            ${{ github.event.inputs.tag == 'latest' && 'ghcr.io/koush/scrypted:homeassistant' || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
