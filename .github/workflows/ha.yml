@@ -6,9 +6,6 @@ on:
       docker_tag:
         description: "Docker Tag"
         required: true
-      package_version:
-        description: "Package Version"
-        required: false
   workflow_run:
     workflows: ["Publish Scrypted Docker Image"]
     types:
@@ -23,14 +20,16 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v3
 
-      - name: get-npm-version
-        id: package-version
-        uses: martinbeentjes/npm-get-version-action@master
+      - name: NPM Package Request
+        id: npm-request
+        uses: fjogeleit/http-request-action@v1
         with:
-          path: server
+          url: 'https://registry.npmjs.org/@scrypted/server'
+          method: 'GET'
 
-      - name: Print Version
-        run: echo "Version ${{ github.event.inputs.package_version || steps.package-version.outputs.current-version }}"
+      - name: Set NPM Version
+        id: package-version
+        run: echo "NPM_VERSION=${{ fromJson(steps.npm-request.outputs.response)['dist-tags'][ github.event.inputs.docker_tag] }}" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -59,10 +58,10 @@ jobs:
           platforms: linux/amd64,linux/arm64,linux/armhf
           push: true
           tags: |
-            ${{ format('koush/scrypted:homeassistant-v{0}', github.event.inputs.package_version || steps.package-version.outputs.current-version) }}
+            ${{ format('koush/scrypted:homeassistant-v{0}', steps.package-version.outputs.NPM_VERSION) }}
             ${{ github.event.inputs.docker_tag == 'latest' && 'koush/scrypted:homeassistant' || '' }}
 
-            ${{ format('ghcr.io/koush/scrypted:homeassistant-v{0}', github.event.inputs.package_version || steps.package-version.outputs.current-version) }}
+            ${{ format('ghcr.io/koush/scrypted:homeassistant-v{0}', steps.package-version.outputs.NPM_VERSION) }}
             ${{ github.event.inputs.docker_tag == 'latest' && 'ghcr.io/koush/scrypted:homeassistant' || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
