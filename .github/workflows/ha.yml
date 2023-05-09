@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "The tag used to build home assistant image. The tag will be resolved as a specific version on npm, and that version will be the docker base image."
+        description: "The tag used to build the Home Assistant image. The tag will be resolved as a specific version on npm, and that version will be the base Scrypted Docker image."
         required: true
   workflow_run:
     workflows: ["Publish Scrypted Docker Image"]

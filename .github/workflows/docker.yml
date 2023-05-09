@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "The npm tag used to build home assistant image. The tag will be resolved as a specific version on npm, and that will be used to version the docker image."
+        description: "The npm tag used to build the Docker image. The tag will be resolved as a specific version on npm, and that will be used to version the docker image."
         required: true
   release:
     types: [published]
